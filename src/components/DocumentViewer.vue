@@ -126,6 +126,86 @@
           <path d="M3 21v-5h5" />
         </svg>
       </button>
+
+      <!-- 分隔符 -->
+      <div class="toolbar-divider"></div>
+
+      <!-- 页面导航按钮 -->
+      <button
+        @click="goToFirstPage"
+        class="toolbar-btn"
+        title="第一页"
+        :disabled="currentPage <= 1"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="11 17 6 12 11 7" />
+          <polyline points="18 17 13 12 18 7" />
+        </svg>
+      </button>
+
+      <button
+        @click="goToPreviousPage"
+        class="toolbar-btn"
+        title="上一页"
+        :disabled="currentPage <= 1"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+
+      <span class="page-display">{{ currentPage }} / {{ totalPages }}</span>
+
+      <button
+        @click="goToNextPage"
+        class="toolbar-btn"
+        title="下一页"
+        :disabled="currentPage >= totalPages"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+
+      <button
+        @click="goToLastPage"
+        class="toolbar-btn"
+        title="最后一页"
+        :disabled="currentPage >= totalPages"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="13 17 18 12 13 7" />
+          <polyline points="6 17 11 12 6 7" />
+        </svg>
+      </button>
     </div>
 
     <!-- Swiper容器 -->
@@ -714,6 +794,77 @@ export default {
       this.resizeScrollRatio = null;
       this.resizeOldScrollTop = 0;
     },
+
+    // 跳转到第一页
+    goToFirstPage() {
+      const container = this.$refs.swiperContainer;
+      if (!container) return;
+
+      // 平滑滚动到顶部
+      container.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+
+      console.log("📄 跳转到第一页");
+    },
+
+    // 跳转到上一页
+    goToPreviousPage() {
+      if (this.currentPage <= 1) return;
+
+      const targetPage = this.currentPage - 1;
+      this.goToPage(targetPage);
+
+      console.log(`📄 跳转到上一页: ${targetPage}`);
+    },
+
+    // 跳转到下一页
+    goToNextPage() {
+      if (this.currentPage >= this.totalPages) return;
+
+      const targetPage = this.currentPage + 1;
+      this.goToPage(targetPage);
+
+      console.log(`📄 跳转到下一页: ${targetPage}`);
+    },
+
+    // 跳转到最后一页
+    goToLastPage() {
+      const container = this.$refs.swiperContainer;
+      if (!container) return;
+
+      // 平滑滚动到底部
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+
+      console.log("📄 跳转到最后一页");
+    },
+
+    // 跳转到指定页面
+    goToPage(pageNumber) {
+      const container = this.$refs.swiperContainer;
+      if (!container || pageNumber < 1 || pageNumber > this.totalPages) {
+        return;
+      }
+
+      // 获取目标页面的 slide 元素
+      const slides = container.querySelectorAll(".swiper-slide");
+      const targetSlide = slides[pageNumber - 1];
+
+      if (targetSlide) {
+        // 获取目标 slide 相对于容器的位置
+        const slideTop = targetSlide.offsetTop;
+
+        // 平滑滚动到目标位置
+        container.scrollTo({
+          top: slideTop,
+          behavior: "smooth",
+        });
+      }
+    },
   },
 };
 </script>
@@ -817,6 +968,29 @@ export default {
   background: rgba(0, 0, 0, 0.6);
   border-radius: 8px;
   min-width: 50px;
+  justify-content: center;
+}
+
+/* 工具栏分隔符 */
+.toolbar-divider {
+  width: 2px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 0 8px;
+}
+
+/* 页面显示 */
+.page-display {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  color: white;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  min-width: 70px;
   justify-content: center;
 }
 
