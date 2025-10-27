@@ -192,17 +192,36 @@ export default {
       isFullscreen: false, // 是否全屏
       rotationDegree: 0, // 旋转角度 (0, 90, 180, 270)
       scale: 1.0, // 缩放比例 (0.5 - 2.0, 即 50% - 200%)
+      lastContainerWidth: 0, // 记录上次的容器宽度，用于 resize 调整
+      resizeScrollRatio: null, // 记录 resize 时的滚动比例
+      resizeOldScrollTop: 0, // 记录 resize 前的滚动位置
 
       // Swiper 实例
       swiperInstance: null,
+      resizeObserver: null, // ResizeObserver 实例
     };
   },
 
   mounted() {
     console.log("📱 组件挂载，总页数:", this.totalPages);
     this.$nextTick(() => {
+      // 记录初始容器宽度
+      const container = this.$refs.swiperContainer;
+      if (container) {
+        this.lastContainerWidth = container.clientWidth;
+
+        // 创建 ResizeObserver 监听容器高度变化
+        this.resizeObserver = new ResizeObserver((entries) => {
+          this.handleContainerResize(entries);
+        });
+        this.resizeObserver.observe(container);
+      }
+
       this.initSwiper();
     });
+
+    // 监听窗口 resize 事件
+    window.addEventListener("resize", this.handleResize);
 
     // 监听全屏变化事件
     document.addEventListener("fullscreenchange", this.handleFullscreenChange);
@@ -231,6 +250,15 @@ export default {
       this.swiperInstance.destroy(true, true);
       this.swiperInstance = null;
       console.log("🔚 Swiper 实例已销毁");
+    }
+
+    // 移除窗口 resize 监听
+    window.removeEventListener("resize", this.handleResize);
+
+    // 断开 ResizeObserver
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
 
     // 移除全屏事件监听
@@ -619,6 +647,72 @@ export default {
 
         console.log(`🔍 缩放到: ${(this.scale * 100).toFixed(0)}%`);
       });
+    },
+
+    // 处理窗口 resize 事件
+    handleResize() {
+      const container = this.$refs.swiperContainer;
+      if (!container) return;
+
+      const currentWidth = container.clientWidth;
+      const oldWidth = this.lastContainerWidth;
+
+      // 如果宽度没有变化，直接返回
+      if (currentWidth === oldWidth || oldWidth === 0) {
+        this.lastContainerWidth = currentWidth;
+        return;
+      }
+
+      // 记录当前滚动位置和内容高度
+      const oldScrollTop = container.scrollTop;
+      const oldScrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      // 计算视口中心点在内容中的相对位置（百分比）
+      const scrollRatio = (oldScrollTop + clientHeight / 2) / oldScrollHeight;
+
+      // 保存滚动比例，等待 ResizeObserver 检测到高度变化后再调整
+      this.resizeScrollRatio = scrollRatio;
+      this.resizeOldScrollTop = oldScrollTop;
+
+      console.log(
+        `📐 窗口宽度变化: ${oldWidth}px -> ${currentWidth}px, 滚动比例: ${(
+          scrollRatio * 100
+        ).toFixed(1)}%`
+      );
+
+      // 更新记录的宽度
+      this.lastContainerWidth = currentWidth;
+    },
+
+    // 处理容器高度变化（由 ResizeObserver 触发）
+    handleContainerResize(entries) {
+      // 只有在有待处理的滚动比例时才调整
+      if (this.resizeScrollRatio === null) return;
+
+      const container = this.$refs.swiperContainer;
+      if (!container) return;
+
+      const entry = entries[0];
+      const newScrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      // 根据保存的滚动比例计算新的滚动位置
+      const newScrollTop =
+        this.resizeScrollRatio * newScrollHeight - clientHeight / 2;
+
+      // 应用新的滚动位置
+      container.scrollTop = Math.max(0, newScrollTop);
+
+      console.log(
+        `📍 高度变化检测，滚动调整: ${this.resizeOldScrollTop.toFixed(
+          0
+        )}px -> ${container.scrollTop.toFixed(0)}px`
+      );
+
+      // 清除待处理的滚动比例
+      this.resizeScrollRatio = null;
+      this.resizeOldScrollTop = 0;
     },
   },
 };
