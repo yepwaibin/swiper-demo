@@ -75,7 +75,11 @@
         >
           <div
             class="image-wrapper"
-            :style="{ minHeight: getImageWrapperHeight(page) }"
+            :style="
+              shouldLoadPage(page)
+                ? {}
+                : { minHeight: getImageWrapperHeight(page) }
+            "
           >
             <img
               v-if="shouldLoadPage(page)"
@@ -606,17 +610,16 @@ export default {
   width: 100%;
   position: relative;
   background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* 移除 flex 布局，避免居中对齐产生空白 */
   border-bottom: 2px solid #e0e0e0;
+  line-height: 0; /* 消除图片下方的间隙 */
 }
 
 .page-image {
   width: 100%;
   height: auto;
   display: block;
-  object-fit: contain;
+  /* 移除 object-fit: contain，让图片完全填充宽度 */
   background: white;
   transition: transform 0.3s ease;
   transform-origin: center center;
