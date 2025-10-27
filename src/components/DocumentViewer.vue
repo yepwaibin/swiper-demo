@@ -62,11 +62,79 @@
         </svg>
         <span class="rotation-text">{{ rotationDegree }}°</span>
       </button>
+
+      <button
+        @click="zoomOut"
+        class="toolbar-btn"
+        :title="`缩小 (当前 ${(scale * 100).toFixed(0)}%)`"
+        :disabled="scale <= 0.5"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+      </button>
+
+      <span class="zoom-display">{{ (scale * 100).toFixed(0) }}%</span>
+
+      <button
+        @click="zoomIn"
+        class="toolbar-btn"
+        :title="`放大 (当前 ${(scale * 100).toFixed(0)}%)`"
+        :disabled="scale >= 2.0"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+          <line x1="11" y1="8" x2="11" y2="14" />
+          <line x1="8" y1="11" x2="14" y2="11" />
+        </svg>
+      </button>
+
+      <button
+        @click="resetZoom"
+        class="toolbar-btn"
+        title="重置缩放 (100%)"
+        v-if="scale !== 1.0"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M3 21v-5h5" />
+        </svg>
+      </button>
     </div>
 
     <!-- Swiper容器 -->
     <div class="swiper-container" ref="swiperContainer">
-      <div class="swiper-wrapper" ref="swiperWrapper">
+      <div
+        class="swiper-wrapper"
+        ref="swiperWrapper"
+        :style="{ transform: `scale(${scale})`, transformOrigin: 'top left' }"
+      >
         <div
           v-for="page in totalPages"
           :key="page"
@@ -123,6 +191,7 @@ export default {
       // 功能状态
       isFullscreen: false, // 是否全屏
       rotationDegree: 0, // 旋转角度 (0, 90, 180, 270)
+      scale: 1.0, // 缩放比例 (0.5 - 2.0, 即 50% - 200%)
 
       // Swiper 实例
       swiperInstance: null,
@@ -498,6 +567,59 @@ export default {
         this.swiperInstance.update();
       }
     },
+
+    // 放大（每次增加 10%）
+    zoomIn() {
+      if (this.scale < 2.0) {
+        const newScale = Math.min(2.0, this.scale + 0.1);
+        this.applyZoom(newScale);
+      }
+    },
+
+    // 缩小（每次减少 10%）
+    zoomOut() {
+      if (this.scale > 0.5) {
+        const newScale = Math.max(0.5, this.scale - 0.1);
+        this.applyZoom(newScale);
+      }
+    },
+
+    // 重置缩放（恢复到 100%）
+    resetZoom() {
+      this.applyZoom(1.0);
+    },
+
+    // 应用缩放并调整滚动位置（保持视口中心点不变）
+    applyZoom(newScale) {
+      const container = this.$refs.swiperContainer;
+      if (!container) return;
+
+      const oldScale = this.scale;
+
+      // 获取当前滚动位置和视口信息
+      const scrollTop = container.scrollTop;
+      const clientHeight = container.clientHeight;
+
+      // 计算视口中心点在缩放前的位置
+      const viewportCenter = scrollTop + clientHeight / 2;
+
+      // 应用新的缩放
+      this.scale = newScale;
+
+      // 等待 DOM 更新后调整滚动位置
+      this.$nextTick(() => {
+        // 计算缩放比例变化
+        const scaleRatio = newScale / oldScale;
+
+        // 计算新的滚动位置（保持视口中心点不变）
+        const newScrollTop = viewportCenter * scaleRatio - clientHeight / 2;
+
+        // 应用新的滚动位置
+        container.scrollTop = Math.max(0, newScrollTop);
+
+        console.log(`🔍 缩放到: ${(this.scale * 100).toFixed(0)}%`);
+      });
+    },
   },
 };
 </script>
@@ -589,6 +711,33 @@ export default {
   text-align: center;
 }
 
+/* 缩放显示 */
+.zoom-display {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  color: white;
+  font-family: "Courier New", monospace;
+  font-weight: bold;
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  min-width: 50px;
+  justify-content: center;
+}
+
+/* 禁用状态的按钮 */
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toolbar-btn:disabled:hover {
+  transform: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 .swiper-container {
   width: 100%;
   height: 100vh;
@@ -598,6 +747,8 @@ export default {
 .swiper-wrapper {
   display: flex;
   flex-direction: column;
+  /* 移除 transition，避免缩放时的视觉跳动 */
+  /* transition: transform 0.3s ease; */
 }
 
 .swiper-slide {
