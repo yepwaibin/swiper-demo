@@ -531,6 +531,9 @@ export default {
 
     // 更新当前页码
     updateCurrentPage(scrollTop) {
+      // 将滚动位置转换为未缩放的位置
+      const unscaledScrollTop = scrollTop / this.scale;
+
       let accumulatedHeight = 0;
       for (let page = 1; page <= this.totalPages; page++) {
         const pageHeight =
@@ -538,7 +541,7 @@ export default {
         const pageMiddle = accumulatedHeight + pageHeight / 2;
 
         // 如果滚动位置在页面中点之前，说明当前在该页
-        if (scrollTop < pageMiddle) {
+        if (unscaledScrollTop < pageMiddle) {
           this.currentPage = page;
           break;
         }
@@ -834,13 +837,23 @@ export default {
       const container = this.$refs.swiperContainer;
       if (!container) return;
 
-      // 平滑滚动到底部
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: "smooth",
-      });
+      // 获取最后一页的 slide 元素
+      const slides = container.querySelectorAll(".swiper-slide");
+      const lastSlide = slides[this.totalPages - 1];
 
-      console.log("📄 跳转到最后一页");
+      if (lastSlide) {
+        // 使用 offsetTop 获取原始布局位置，然后乘以缩放比例
+        const slideTop = lastSlide.offsetTop;
+        const scaledTop = slideTop * this.scale;
+
+        // 平滑滚动到最后一页
+        container.scrollTo({
+          top: scaledTop,
+          behavior: "smooth",
+        });
+
+        console.log("📄 跳转到最后一页");
+      }
     },
 
     // 跳转到指定页面
@@ -855,12 +868,13 @@ export default {
       const targetSlide = slides[pageNumber - 1];
 
       if (targetSlide) {
-        // 获取目标 slide 相对于容器的位置
+        // 使用 offsetTop 获取原始布局位置，然后乘以缩放比例
         const slideTop = targetSlide.offsetTop;
+        const scaledTop = slideTop * this.scale;
 
         // 平滑滚动到目标位置
         container.scrollTo({
-          top: slideTop,
+          top: scaledTop,
           behavior: "smooth",
         });
       }
